@@ -14,8 +14,17 @@ impl PacketBuffer {
         self.pos
     }
 
-    pub fn step(&mut self, step: usize) {
+    pub fn step(&mut self, step: usize) -> Result<(), String> {
+        if self.pos + step >= PACKET_BYTES_LENGTH {
+            let err_str = format!(
+                "Invalid step, stepping past buffer boundary: buffer length={}, pos={}, step={}",
+                PACKET_BYTES_LENGTH, self.pos, step
+            );
+            return Err(err_str);
+        }
+
         self.pos += step;
+        Ok(())
     }
 }
 
@@ -35,7 +44,19 @@ mod tests {
         let buf = [0; PACKET_BYTES_LENGTH];
         let mut packet_buffer = PacketBuffer::new(buf);
         let step = 5;
-        packet_buffer.step(step);
+        let res = packet_buffer.step(step);
+        assert_eq!(true, res.is_ok());
         assert_eq!(step, packet_buffer.pos());
+    }
+
+    #[test]
+    fn return_error_if_stepping_past_end_of_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let mut packet_buffer = PacketBuffer::new(buf);
+        let invalid_step = PACKET_BYTES_LENGTH + 1;
+        let res = packet_buffer.step(invalid_step);
+        let expected_err_str =
+            "Invalid step, stepping past buffer boundary: buffer length=512, pos=0, step=513";
+        assert_eq!(true, res.is_err_and(|err_str| err_str == expected_err_str));
     }
 }
