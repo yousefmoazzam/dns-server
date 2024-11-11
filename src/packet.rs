@@ -40,10 +40,17 @@ impl PacketBuffer {
         Ok(())
     }
 
-    pub fn read(&mut self) -> u8 {
+    pub fn read(&mut self) -> Result<u8, String> {
+        if self.pos >= PACKET_BYTES_LENGTH {
+            let err_str = format!(
+                "Invalid read, reading past buffer boundary: buffer length={}, pos={}",
+                PACKET_BYTES_LENGTH, self.pos
+            );
+            return Err(err_str);
+        }
         let res = self.buf[self.pos];
         self.pos += 1;
-        res
+        Ok(res)
     }
 }
 
@@ -106,7 +113,21 @@ mod tests {
         let zeroth_element = 1;
         buf[0] = zeroth_element;
         let mut packet_buffer = PacketBuffer::new(buf);
-        assert_eq!(zeroth_element, packet_buffer.read());
+        assert_eq!(
+            true,
+            packet_buffer.read().is_ok_and(|val| val == zeroth_element)
+        );
         assert_eq!(1, packet_buffer.pos());
+    }
+
+    #[test]
+    fn return_error_if_reading_at_index_past_end_of_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let mut packet_buffer = PacketBuffer::new(buf);
+        _ = packet_buffer.seek(PACKET_BYTES_LENGTH - 1); // seek to last byte - valid
+        _ = packet_buffer.read(); // read last byte + step forward - valid
+        let res = packet_buffer.read(); // try to read past end of buffer - invalid
+        let expected_str = "Invalid read, reading past buffer boundary: buffer length=512, pos=512";
+        assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
     }
 }
