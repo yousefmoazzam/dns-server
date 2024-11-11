@@ -52,6 +52,10 @@ impl PacketBuffer {
         self.pos += 1;
         Ok(res)
     }
+
+    pub fn get(&self) -> u8 {
+        self.buf[self.pos]
+    }
 }
 
 #[cfg(test)]
@@ -129,5 +133,15 @@ mod tests {
         let res = packet_buffer.read(); // try to read past end of buffer - invalid
         let expected_str = "Invalid read, reading past buffer boundary: buffer length=512, pos=512";
         assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
+    }
+
+    #[test]
+    fn get_correct_value_and_pos_not_moved_forward() {
+        let mut buf = [0; PACKET_BYTES_LENGTH];
+        let zeroth_element = 1;
+        buf[0] = zeroth_element;
+        let packet_buffer = PacketBuffer::new(buf);
+        assert_eq!(zeroth_element, packet_buffer.get());
+        assert_eq!(0, packet_buffer.pos());
     }
 }
