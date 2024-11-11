@@ -53,8 +53,16 @@ impl PacketBuffer {
         Ok(res)
     }
 
-    pub fn get(&self) -> u8 {
-        self.buf[self.pos]
+    pub fn get(&self) -> Result<u8, String> {
+        if self.pos >= PACKET_BYTES_LENGTH {
+            let err_str = format!(
+                "Invalid get, getting value past buffer boundary: buffer length={}, pos={}",
+                PACKET_BYTES_LENGTH, self.pos
+            );
+            return Err(err_str);
+        }
+
+        Ok(self.buf[self.pos])
     }
 }
 
@@ -141,7 +149,22 @@ mod tests {
         let zeroth_element = 1;
         buf[0] = zeroth_element;
         let packet_buffer = PacketBuffer::new(buf);
-        assert_eq!(zeroth_element, packet_buffer.get());
+        assert_eq!(
+            true,
+            packet_buffer.get().is_ok_and(|val| val == zeroth_element)
+        );
         assert_eq!(0, packet_buffer.pos());
+    }
+
+    #[test]
+    fn return_error_if_getting_value_at_index_past_end_of_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let mut packet_buffer = PacketBuffer::new(buf);
+        _ = packet_buffer.seek(PACKET_BYTES_LENGTH - 1); // seek to last byte - valid
+        _ = packet_buffer.read(); // read last byte + step forward - valid
+        let res = packet_buffer.get(); // try to get value past end of buffer - invalid
+        let expected_str =
+            "Invalid get, getting value past buffer boundary: buffer length=512, pos=512";
+        assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
     }
 }
