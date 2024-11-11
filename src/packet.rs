@@ -65,8 +65,16 @@ impl PacketBuffer {
         Ok(self.buf[self.pos])
     }
 
-    pub fn get_range(&self, start: usize, len: usize) -> &[u8] {
-        &self.buf[start..start + len]
+    pub fn get_range(&self, start: usize, len: usize) -> Result<&[u8], String> {
+        if start + len >= PACKET_BYTES_LENGTH {
+            let err_str = format!(
+                "Invalid range, getting range past buffer boundary: buffer length={}, start={}, len={}",
+                PACKET_BYTES_LENGTH, start, len
+            );
+            return Err(err_str);
+        }
+
+        Ok(&self.buf[start..start + len])
     }
 }
 
@@ -179,6 +187,22 @@ mod tests {
         let len = 10;
         let packet_buffer = PacketBuffer::new(buf);
         let expected_slice = &buf[start..start + len];
-        assert_eq!(expected_slice, packet_buffer.get_range(start, len));
+        assert_eq!(
+            true,
+            packet_buffer
+                .get_range(start, len)
+                .is_ok_and(|val| val == expected_slice)
+        );
+    }
+
+    #[test]
+    fn return_error_if_getting_range_past_end_of_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let start = 500;
+        let len = 20;
+        let packet_buffer = PacketBuffer::new(buf);
+        let res = packet_buffer.get_range(start, len);
+        let expected_str = "Invalid range, getting range past buffer boundary: buffer length=512, start=500, len=20";
+        assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
     }
 }
