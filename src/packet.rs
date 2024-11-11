@@ -64,6 +64,10 @@ impl PacketBuffer {
 
         Ok(self.buf[self.pos])
     }
+
+    pub fn get_range(&self, start: usize, len: usize) -> &[u8] {
+        &self.buf[start..start + len]
+    }
 }
 
 #[cfg(test)]
@@ -166,5 +170,15 @@ mod tests {
         let expected_str =
             "Invalid get, getting value past buffer boundary: buffer length=512, pos=512";
         assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
+    }
+
+    #[test]
+    fn get_correct_range_within_buffer() {
+        let buf: [u8; PACKET_BYTES_LENGTH] = core::array::from_fn(|idx| idx as u8);
+        let start = 0;
+        let len = 10;
+        let packet_buffer = PacketBuffer::new(buf);
+        let expected_slice = &buf[start..start + len];
+        assert_eq!(expected_slice, packet_buffer.get_range(start, len));
     }
 }
