@@ -27,8 +27,17 @@ impl PacketBuffer {
         Ok(())
     }
 
-    pub fn seek(&mut self, pos: usize) {
+    pub fn seek(&mut self, pos: usize) -> Result<(), String> {
+        if pos >= PACKET_BYTES_LENGTH {
+            let err_str = format!(
+                "Invalid seek, seeking past buffer boundary: buffer length={}, seek={}",
+                PACKET_BYTES_LENGTH, pos
+            );
+            return Err(err_str);
+        }
+
         self.pos = pos;
+        Ok(())
     }
 }
 
@@ -69,7 +78,19 @@ mod tests {
         let buf = [0; PACKET_BYTES_LENGTH];
         let mut packet_buffer = PacketBuffer::new(buf);
         let new_pos = 51;
-        packet_buffer.seek(new_pos);
+        let res = packet_buffer.seek(new_pos);
+        assert_eq!(true, res.is_ok());
         assert_eq!(new_pos, packet_buffer.pos());
+    }
+
+    #[test]
+    fn return_error_if_seeking_past_end_of_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let mut packet_buffer = PacketBuffer::new(buf);
+        let invalid_pos = 600;
+        let res = packet_buffer.seek(invalid_pos);
+        let expected_str =
+            "Invalid seek, seeking past buffer boundary: buffer length=512, seek=600";
+        assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
     }
 }
