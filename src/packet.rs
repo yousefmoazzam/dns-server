@@ -26,6 +26,10 @@ impl PacketBuffer {
         self.pos += step;
         Ok(())
     }
+
+    pub fn seek(&mut self, pos: usize) {
+        self.pos = pos;
+    }
 }
 
 #[cfg(test)]
@@ -58,5 +62,14 @@ mod tests {
         let expected_err_str =
             "Invalid step, stepping past buffer boundary: buffer length=512, pos=0, step=513";
         assert_eq!(true, res.is_err_and(|err_str| err_str == expected_err_str));
+    }
+
+    #[test]
+    fn seek_to_position_within_buffer() {
+        let buf = [0; PACKET_BYTES_LENGTH];
+        let mut packet_buffer = PacketBuffer::new(buf);
+        let new_pos = 51;
+        packet_buffer.seek(new_pos);
+        assert_eq!(new_pos, packet_buffer.pos());
     }
 }
