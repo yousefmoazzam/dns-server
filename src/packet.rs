@@ -39,6 +39,12 @@ impl PacketBuffer {
         self.pos = pos;
         Ok(())
     }
+
+    pub fn read(&mut self) -> u8 {
+        let res = self.buf[self.pos];
+        self.pos += 1;
+        res
+    }
 }
 
 #[cfg(test)]
@@ -92,5 +98,15 @@ mod tests {
         let expected_str =
             "Invalid seek, seeking past buffer boundary: buffer length=512, seek=600";
         assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
+    }
+
+    #[test]
+    fn correct_value_read_at_pos_zero_and_pos_moved_up_by_one() {
+        let mut buf = [0; PACKET_BYTES_LENGTH];
+        let zeroth_element = 1;
+        buf[0] = zeroth_element;
+        let mut packet_buffer = PacketBuffer::new(buf);
+        assert_eq!(zeroth_element, packet_buffer.read());
+        assert_eq!(1, packet_buffer.pos());
     }
 }
