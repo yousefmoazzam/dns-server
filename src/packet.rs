@@ -57,6 +57,14 @@ impl PacketBuffer {
         Ok(((self.read()? as u16) << 8) | (self.read()? as u16))
     }
 
+    pub fn read_u32(&mut self) -> Result<u32, String> {
+        let res = ((self.read()? as u32) << 8 * 3)
+            | ((self.read()? as u32) << 8 * 2)
+            | ((self.read()? as u32) << 8)
+            | (self.read()? as u32);
+        Ok(res)
+    }
+
     pub fn get(&self) -> Result<u8, String> {
         if self.pos >= PACKET_BYTES_LENGTH {
             let err_str = format!(
@@ -226,5 +234,30 @@ mod tests {
                 .is_ok_and(|val| val == expected_u16_value)
         );
         assert_eq!(2, packet_buffer.pos());
+    }
+
+    #[test]
+    fn get_correct_value_from_u32_read() {
+        let mut buf = [0; PACKET_BYTES_LENGTH];
+        let byte_zero = 0x05;
+        let byte_one = 0x03;
+        let byte_two = 0x01;
+        let byte_three = 0x06;
+        let expected_u32_value = ((byte_three as u32) << 8 * 3)
+            | ((byte_two as u32) << 8 * 2)
+            | ((byte_one as u32) << 8)
+            | (byte_zero as u32);
+        buf[0] = byte_three;
+        buf[1] = byte_two;
+        buf[2] = byte_one;
+        buf[3] = byte_zero;
+        let mut packet_buffer = PacketBuffer::new(buf);
+        assert_eq!(
+            true,
+            packet_buffer
+                .read_u32()
+                .is_ok_and(|val| val == expected_u32_value)
+        );
+        assert_eq!(4, packet_buffer.pos());
     }
 }
