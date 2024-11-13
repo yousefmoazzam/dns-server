@@ -53,6 +53,10 @@ impl PacketBuffer {
         Ok(res)
     }
 
+    pub fn read_u16(&mut self) -> Result<u16, String> {
+        Ok(((self.read()? as u16) << 8) | (self.read()? as u16))
+    }
+
     pub fn get(&self) -> Result<u8, String> {
         if self.pos >= PACKET_BYTES_LENGTH {
             let err_str = format!(
@@ -204,5 +208,23 @@ mod tests {
         let res = packet_buffer.get_range(start, len);
         let expected_str = "Invalid range, getting range past buffer boundary: buffer length=512, start=500, len=20";
         assert_eq!(true, res.is_err_and(|err_str| err_str == expected_str));
+    }
+
+    #[test]
+    fn get_correct_value_from_u16_read() {
+        let mut buf = [0; PACKET_BYTES_LENGTH];
+        let lo = 0x05;
+        let hi = 0x03;
+        let expected_u16_value = ((hi as u16) << 8) | (lo as u16);
+        buf[0] = hi;
+        buf[1] = lo;
+        let mut packet_buffer = PacketBuffer::new(buf);
+        assert_eq!(
+            true,
+            packet_buffer
+                .read_u16()
+                .is_ok_and(|val| val == expected_u16_value)
+        );
+        assert_eq!(2, packet_buffer.pos());
     }
 }
